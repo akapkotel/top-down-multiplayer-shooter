@@ -31,9 +31,9 @@ class NetworkClient:
         pass
 
     @send.register
-    def _(self, game_object: Player) -> Tuple[Dict]:
+    def _(self, game_object: Player) -> Tuple[Player]:
         try:
-            self.socket.send(dumps(game_object.get_state()))
+            self.socket.send(dumps(game_object))
             try:
                 return loads(self.socket.recv(2048))
             except Exception as e:

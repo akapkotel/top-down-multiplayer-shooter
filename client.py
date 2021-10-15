@@ -109,8 +109,9 @@ class GameView(arcade.View):
 
     def share_data_with_server(self):
         if (enemies := self.window.network_client.send(self.local_player)) is not None:
-            for enemy in enemies:
-                self.players[enemy['id']].set_state(enemy)
+            self.players.update({enemy.id: enemy for enemy in enemies})
+            # for enemy in enemies:
+            #     self.players[enemy['id']].set_state(enemy)
 
     def on_mouse_press(self, x: float, y: float, button: int, modifiers: int):
         if (bullet := self.local_player.shoot(x, y)) is not None:

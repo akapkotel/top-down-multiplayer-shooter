@@ -88,21 +88,6 @@ class Player(GameObject):
     def kill(self):
         self.alive = False
 
-    def get_state(self) -> Dict:
-        return {
-            'id': self.id,
-            'alive': self.alive,
-            'active': self.active,
-            'position': self.position,
-            'angle': self.angle,
-            'change_x': self.change_x,
-            'change_y': self.change_y,
-            'weapon': self.weapon
-        }
-
-    def set_state(self, state: Dict):
-        self.__dict__.update(state)
-
 
 class Weapon:
     def __init__(self, owner: Player, name: str, bullet_speed: float, damage: float):
@@ -167,11 +152,9 @@ class Game:
     def last_added_player(self) -> Player:
         return self.players[-1][-1]
 
-    def update_player(self, player_state: Dict):
-        self.player_by_id(player_state['id']).set_state(player_state)
+    def update_player(self, player: Player):
+        player_ip_address = self.players[player.id][0]
+        self.players[player.id] = player_ip_address, player
 
-    def player_by_id(self, player_id: int) -> Player:
-        return self.players[player_id][-1]
-
-    def get_other_players(self, player_state: Dict) -> Generator[Any, Any, None]:
-        return (other.get_state() for (ip, other) in self.players if other.id != player_state['id'])
+    def get_other_players(self, player: Player) -> Generator[Any, Any, None]:
+        return (other for (ip, other) in self.players if other.id != player.id)
