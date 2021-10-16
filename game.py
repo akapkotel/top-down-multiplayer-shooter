@@ -71,6 +71,12 @@ class Player(GameObject):
         self.change_y = 0
         self.weapon = Weapon(self, 'gun', 10, 10)
 
+    def __eq__(self, other: Player) -> bool:
+        return self.id == other.id
+
+    def is_moving(self) -> bool:
+        return self.change_x != 0 or self.change_y != 0
+
     def update(self):
         super().update()
         self.weapon.start = self.position
@@ -122,6 +128,15 @@ class Projectile(GameObject):
 
     def draw(self):
         arcade.draw_point(*self.position, self.color, self.size)
+
+
+class Map:
+    def __init__(self):
+        self.id = 0
+        self.obstacles = []
+
+    def get_visible_obstacles(self, viewport: List[Tuple]) -> List:
+        return [o for o in self.obstacles if any(arcade.is_point_in_polygon(p[0], p[1], viewport) for p in o.points)]
 
 
 class Game:

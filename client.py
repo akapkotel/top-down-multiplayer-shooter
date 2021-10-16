@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+from typing import List, Tuple
 
 import arcade
 
-from game import Player, PLAYERS_COLORS
+from game import Player, Map, PLAYERS_COLORS
 from networking import NetworkClient
+from visibility import  VisibleArea
 
 WIDTH = 500
 HEIGHT = 500
@@ -45,10 +47,12 @@ class GameView(arcade.View):
     def __init__(self):
         super().__init__()
         self.mouse_position = [0, 0]
+        self.map = Map()
         self.local_player = None
         self.enemy_player = None
         self.players = {}
         self.bullets = []
+        self.visible_area = VisibleArea()
         self.keys_pressed = set()
         self.setup_players()
     
@@ -72,17 +76,19 @@ class GameView(arcade.View):
         self.draw_game_objects()
 
     def draw_game_objects(self):
-        for player in (p for p in self.players.values() if p.alive):
+        for player in (p for p in self.players.values() if p.alive and self.is_object_visible(p)):
             player.draw()
         for bullet in self.bullets:
             bullet.draw()
 
     def update(self, delta_time: float):
         super().update(delta_time)
-        self.update_game_objects()
+        if self.local_player.is_moving:
+            self.update_visible_area()
         if self.all_players_in_game:
+            self.update_game_objects()
             self.process_keyboard_input()
-        self.local_player.aim_at_the_cursor_position(*self.mouse_position)
+            self.local_player.aim_at_the_cursor_position(*self.mouse_position)
         if self.local_player.active:
             self.share_data_with_server()
 
@@ -126,6 +132,18 @@ class GameView(arcade.View):
 
     def on_key_release(self, symbol: int, modifiers: int):
         self.keys_pressed.discard(symbol)
+
+    def is_object_visible(self, p) -> bool:
+        return p == self.local_player or p in self.visible_area
+
+    def update_visible_area(self):
+        visible_map_area = self.get_viewport_rect()
+        visible_obstacles = self.map.get_visible_obstacles(visible_map_area)
+        self.visible_area.update(self.local_player.position, visible_obstacles)
+
+    def get_viewport_rect(self) -> List[Tuple]:
+        x, y, w, h = self.window.viewport
+        return [(x, y), (x + w, y), (x + w, y + h), (x, y + h)]
 
 
 if __name__ == '__main__':
