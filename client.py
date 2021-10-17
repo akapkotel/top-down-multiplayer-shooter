@@ -3,9 +3,10 @@ from typing import List, Tuple
 
 import arcade
 
+from arcade.key import LSHIFT, W, S, A, D
 from game import Player, Map, PLAYERS_COLORS
 from networking import NetworkClient
-from visibility import  VisibleArea
+from visibility import VisibleArea
 
 WIDTH = 500
 HEIGHT = 500
@@ -76,6 +77,8 @@ class GameView(arcade.View):
         self.draw_game_objects()
 
     def draw_game_objects(self):
+        for obstacle in self.map.obstacles:
+            arcade.draw_polygon_filled(obstacle, WHITE)
         for player in (p for p in self.players.values() if p.alive and self.is_object_visible(p)):
             player.draw()
         for bullet in self.bullets:
@@ -102,22 +105,20 @@ class GameView(arcade.View):
         player = self.local_player
         speed = player.speed
         player.stop()
-        if arcade.key.LSHIFT in self.keys_pressed:
+        if LSHIFT in self.keys_pressed:
             speed *= 1.5
-        if arcade.key.W in self.keys_pressed:
+        if W in self.keys_pressed:
             player.forward(speed)
-        if arcade.key.S in self.keys_pressed:
+        if S in self.keys_pressed:
             player.reverse(speed)
-        if arcade.key.A in self.keys_pressed:
+        if A in self.keys_pressed:
             player.rotate(1)
-        if arcade.key.D in self.keys_pressed:
+        if D in self.keys_pressed:
             player.rotate(-1)
 
     def share_data_with_server(self):
         if (enemies := self.window.network_client.send(self.local_player)) is not None:
             self.players.update({enemy.id: enemy for enemy in enemies})
-            # for enemy in enemies:
-            #     self.players[enemy['id']].set_state(enemy)
 
     def on_mouse_press(self, x: float, y: float, button: int, modifiers: int):
         if (bullet := self.local_player.shoot(x, y)) is not None:
@@ -139,7 +140,7 @@ class GameView(arcade.View):
     def update_visible_area(self):
         visible_map_area = self.get_viewport_rect()
         visible_obstacles = self.map.get_visible_obstacles(visible_map_area)
-        self.visible_area.update(self.local_player.position, visible_obstacles)
+        self.visible_area.update(self.local_player.position, visible_map_area, visible_obstacles)
 
     def get_viewport_rect(self) -> List[Tuple]:
         x, y, w, h = self.window.viewport

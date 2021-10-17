@@ -133,10 +133,12 @@ class Projectile(GameObject):
 class Map:
     def __init__(self):
         self.id = 0
-        self.obstacles = []
+        self.obstacles = [
+            [(300, 300), (500, 300), (500, 310), (300, 310)]
+        ]
 
     def get_visible_obstacles(self, viewport: List[Tuple]) -> List:
-        return [o for o in self.obstacles if any(arcade.is_point_in_polygon(p[0], p[1], viewport) for p in o.points)]
+        return [o for o in self.obstacles if any(arcade.is_point_in_polygon(p[0], p[1], viewport) for p in o)]
 
 
 class Game:
