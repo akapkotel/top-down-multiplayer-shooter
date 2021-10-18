@@ -31,7 +31,7 @@ class NetworkClient:
         pass
 
     @send.register
-    def _(self, game_object: Player) -> Tuple[Player]:
+    def _(self, game_object: Player) -> Tuple[Tuple[Player], Tuple[Projectile]]:
         try:
             self.socket.send(dumps(game_object))
             try:
@@ -43,7 +43,14 @@ class NetworkClient:
 
     @send.register
     def _(self, game_object: Projectile):
-        pass
+        try:
+            self.socket.send(dumps(game_object))
+            # try:
+            #     return loads(self.socket.recv(2048))
+            # except Exception as e:
+            #     print(e)
+        except socket.error as se:
+            print(se)
 
     def disconnect(self, player: Player):
         self.send(player)

@@ -6,6 +6,8 @@ import arcade
 
 from typing import List, Tuple, Dict, Generator, Any
 
+from arcade import is_point_in_polygon
+
 from geometry import move_along_vector, calculate_angle
 
 GREEN = (0, 255, 0)
@@ -67,19 +69,42 @@ class Player(GameObject):
         self.game_id = game_id
         self.speed = 1
         self.rotation_speed = 5
+        self.change_angle = 0
         self.change_x = 0
         self.change_y = 0
-        self.weapon = Weapon(self, 'gun', 10, 10)
+        self.weapon = Weapon(owner=self, name='gun', bullet_speed=10, damage=1)
+        self._polygon = []
+        self.health = 10
 
     def __eq__(self, other: Player) -> bool:
         return self.id == other.id
 
+    @property
+    def polygon(self) -> List[Tuple]:
+        return self._polygon
+
+    @property
     def is_moving(self) -> bool:
         return self.change_x != 0 or self.change_y != 0
 
-    def update(self):
+    @property
+    def is_rotating(self) -> bool:
+        return self.change_angle != 0
+
+    def update(self, is_local_player: bool):
         super().update()
+        if is_local_player and (self.is_moving or self.is_rotating):
+            self.update_polygon()
         self.weapon.start = self.position
+
+    def update_polygon(self):
+        cx, cy = self.position
+        w, h = self.size
+        self._polygon = [
+            arcade.rotate_point(p[0], p[1], cx, cy, self.angle) for p in [
+                (cx - w / 2, cy - h / 2), (cx + w, cy - h / 2), (cx + w, cy + h / 2), (cx - w, cy + h / 2)
+            ]
+        ]
 
     def draw(self):
         arcade.draw_rectangle_filled(*self.position, *self.size, self.color, -self.angle)
@@ -90,6 +115,11 @@ class Player(GameObject):
 
     def aim_at_the_cursor_position(self, x, y):
         self.weapon.rotate_toward_cursor(x, y)
+
+    def hit(self, projectile: Projectile):
+        self.health -= projectile.damage
+        if self.health <= 0:
+            self.kill()
 
     def kill(self):
         self.alive = False
@@ -112,22 +142,42 @@ class Weapon:
 
     def shoot(self, shooter, x, y) -> Projectile:
         angle = calculate_angle(*self.start, x, y)
-        return Projectile(shooter.color, self.end, angle, self.bullet_speed, self.damage)
+        return Projectile(shooter, self.end, angle, self.bullet_speed, self.damage)
 
 
 class Projectile(GameObject):
-    def __init__(self, color: Tuple, position: Tuple[float, float], angle: float, speed: float, damage: float):
+    def __init__(self, player: Player, position: Tuple[float, float], angle: float, speed: float, damage: float):
         super().__init__()
-        self.size = 2
-        self.color = color
+        self.unique_id = None
+        self.player_id = player.id
+        self.color = player.color
+        self.size = 3
         self.position = position
         self.angle = angle
         self.speed = speed
+        self.distance = 0
         self.damage = damage
+        self.active = True
+        self.known = 1  # since local client creates this instance and need no update about it's creation
         self.forward(self.speed)
+
+    def __eq__(self, other: Projectile) -> bool:
+        return self.unique_id == other.unique_id
+
+    def __hash__(self):
+        return hash(self.unique_id)
+
+    def update(self):
+        super().update()
+        self.distance += self.speed
+        if self.distance >= 200:
+            self.active = False
 
     def draw(self):
         arcade.draw_point(*self.position, self.color, self.size)
+
+    def kill(self):
+        self.active = False
 
 
 class Map:
@@ -136,12 +186,17 @@ class Map:
         self.obstacles = [
             [(300, 300), (500, 300), (500, 310), (300, 310)]
         ]
+        self.visible = []
 
-    def get_visible_obstacles(self, viewport: List[Tuple]) -> List:
-        return [o for o in self.obstacles if any(arcade.is_point_in_polygon(p[0], p[1], viewport) for p in o)]
+    def update_visible_map_area(self, viewport: List[Tuple]):
+        self.visible = [o for o in self.obstacles if any(is_point_in_polygon(p[0], p[1], viewport) for p in o)]
+
+    def get_visible_obstacles(self) -> List:
+        return self.visible
 
 
 class Game:
+    projectiles_count = 0
 
     def __init__(self, game_id: int, name: str = None, max_players: int=4):
         self.public = True
@@ -149,7 +204,7 @@ class Game:
         self.name = name
         self.max_players = max_players
         self.players: List[Tuple[str, Player]] = []
-        self.bullets: Dict[int, List[Projectile]] = {}
+        self.projectiles: List[Projectile] = []
 
     def __contains__(self, item: Player):
         return any(p.id == item.id for (ip, p) in self.players)
@@ -160,7 +215,7 @@ class Game:
     def join_new_player(self, client_ip_address: str):
         player_id = len(self.players)
         player_color = PLAYERS_COLORS[player_id]
-        player = Player(self.id, player_id, 250, 250, 25, 25, player_color, True)
+        player = Player(self.id, player_id, 250, 250, 25, 35, player_color, True)
         self.players.append((client_ip_address, player))
 
     def last_player_index(self) -> int:
@@ -173,5 +228,24 @@ class Game:
         player_ip_address = self.players[player.id][0]
         self.players[player.id] = player_ip_address, player
 
-    def get_other_players(self, player: Player) -> Generator[Any, Any, None]:
-        return (other for (ip, other) in self.players if other.id != player.id)
+    def get_other_players_and_projectiles(self, player: Player) -> Tuple[Tuple[Player], Tuple[Projectile]]:
+        return self.get_other_players(player), tuple(self.get_other_players_projectiles())
+
+    def get_other_players(self, player: Player) -> Tuple[Player]:
+        # noinspection PyTypeChecker
+        return tuple(other for (ip, other) in self.players if other.id != player.id)
+
+    def update_projectiles(self, projectile: Projectile):
+        self.projectiles_count += 1
+        projectile.unique_id = self.projectiles_count
+        self.projectiles.append(projectile)
+
+    def get_other_players_projectiles(self) -> List[Projectile]:
+        send_projectiles = []
+        for projectile in self.projectiles[::]:
+            if projectile.known < self.max_players:
+                projectile.known += 1
+                send_projectiles.append(projectile)
+            else:
+                self.projectiles.remove(projectile)
+        return send_projectiles

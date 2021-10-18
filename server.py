@@ -3,9 +3,9 @@ import socket
 import time
 import threading
 
-from typing import List
+from typing import List, Optional
 from pickle import dumps, loads
-from game import Game
+from game import Game, Player, Projectile
 
 
 def log(message: str, console: bool = False):
@@ -62,8 +62,8 @@ class Server:
 
         while True:
             try:
-                if received := connection.recv(2048):
-                    log(f'Game: {game.id}, received data from {address}')
+                if received := loads(connection.recv(2048)):
+                    log(f'Game: {game.id}, received data: {received} from {address}')
                     self.process_and_response(game, received, connection)
                 else:
                     break
@@ -108,15 +108,17 @@ class Server:
     def send_client_response_with_game_and_player_id(self, connection: socket, game: Game):
         connection.send(dumps(game.last_added_player()))
 
-    def process_and_response(self, game: Game, received: bytes, connection: socket):
-        player = loads(received)
-        game.update_player(player)
+    def process_and_response(self, game: Game, received: Player or Projectile, connection: socket):
+        if isinstance(received, Player):
+            game.update_player(received)
 
-        if game.players:
-            other_players = tuple(game.get_other_players(player))
-            connection.sendall(dumps(other_players))
-        else:
-            connection.sendall(str.encode('w'))
+            if game.players:
+                other_players, projectiles = game.get_other_players_and_projectiles(received)
+                connection.sendall(dumps((other_players, projectiles)))
+            else:
+                connection.sendall(str.encode('w'))
+        elif isinstance(received, Projectile):
+            game.update_projectiles(received)
 
 
 if __name__ == '__main__':

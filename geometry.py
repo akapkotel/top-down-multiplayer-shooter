@@ -31,24 +31,11 @@ def move_along_vector(start: Tuple, velocity: float, target: Tuple = None) -> Tu
 def calculate_angle(sx: float, sy: float, ex: float, ey: float) -> float:
     """
     Calculate angle in direction from 'start' to the 'end' point in degrees.
-
-    :param:sx float -- x coordinate of start point
-    :param:sy float -- y coordinate of start point
-    :param:ex float -- x coordinate of end point
-    :param:ey float -- y coordinate of end point
-    :return: float -- degrees in range 0-360.
     """
     rads = math.atan2(ex - sx, ey - sy)
     return -math.degrees(rads) % 360
 
 
 def vector_2d(angle: float, scalar: float) -> Tuple:
-    """
-    Calculate x and y parts of the current vector.
-
-    :param angle: float -- angle of the vector
-    :param scalar: float -- scalar difference of the vector (e.g. max_speed)
-    :return: Point -- x and y parts of the vector in format: (float, float)
-    """
     rad = -math.radians(angle)
     return math.sin(rad) * scalar, math.cos(rad) * scalar
