@@ -67,7 +67,7 @@ class Server:
                     self.process_and_response(game, received, connection)
                 else:
                     break
-            except ConnectionError as e:
+            except (EOFError, ConnectionError) as e:
                 log(str(e))
                 break
 

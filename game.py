@@ -198,8 +198,8 @@ class Map:
 class Game:
     projectiles_count = 0
 
-    def __init__(self, game_id: int, name: str = None, max_players: int=4):
-        self.public = True
+    def __init__(self, game_id: int, name: str = None, max_players: int = 4):
+        self.public = bool(name)
         self.id = game_id
         self.name = name
         self.max_players = max_players
