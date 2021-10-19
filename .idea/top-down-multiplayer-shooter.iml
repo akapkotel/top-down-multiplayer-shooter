@@ -3,6 +3,8 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/build/client/localpycos" />
+      <excludeFolder url="file://$MODULE_DIR$/build/server/localpycos" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.8 (top-down-multiplayer-shooter)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
