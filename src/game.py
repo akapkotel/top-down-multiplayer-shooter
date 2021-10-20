@@ -13,8 +13,9 @@ from geometry import move_along_vector, calculate_angle
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
-GREY = (200, 200, 200)
-PLAYERS_COLORS = [RED, GREEN, BLUE, GREY]
+GREY = (0, 200, 200)
+YELLOW = (255, 255, 0)
+PLAYERS_COLORS = [RED, GREEN, BLUE, YELLOW]
 
 
 class GameObject:
@@ -60,7 +61,6 @@ class Player(GameObject):
     def __init__(self, game_id, player_id, x, y, width, height, color, active=False):
         super().__init__()
         self.active = active
-        self.alive = True
         self.position = x, y
         self.size = width, height
         self.angle = 0
@@ -72,9 +72,9 @@ class Player(GameObject):
         self.change_angle = 0
         self.change_x = 0
         self.change_y = 0
-        self.weapon = Weapon(owner=self, name='gun', bullet_speed=10, damage=1)
+        self.weapon = Weapon(owner=self, name='gun', bullet_speed=10, damage=10)
         self._polygon = []
-        self.health = 10
+        self.health = 100
 
     def __eq__(self, other: Player) -> bool:
         return self.id == other.id
@@ -86,6 +86,10 @@ class Player(GameObject):
     @property
     def is_moving(self) -> bool:
         return self.change_x != 0 or self.change_y != 0
+
+    @property
+    def alive(self) -> bool:
+        return self.health > 0
 
     @property
     def is_rotating(self) -> bool:
@@ -118,11 +122,9 @@ class Player(GameObject):
 
     def damage(self, projectile: Projectile):
         self.health -= projectile.damage
-        if self.health <= 0:
-            self.kill()
 
     def kill(self):
-        self.alive = False
+        self.health = 0
 
 
 class Weapon:
@@ -131,10 +133,10 @@ class Weapon:
         self.bullet_speed = bullet_speed
         self.damage = damage
         self.start = owner.position
-        self.end = self.start[0], self.start[1] + 25
+        self.end = self.start[0], self.start[1] + 10 + damage
 
     def rotate_toward_cursor(self, x, y):
-        self.end = move_along_vector(self.start, 25, (x, y))
+        self.end = move_along_vector(self.start, 10 + self.damage, (x, y))
 
     def draw(self):
         arcade.draw_circle_filled(*self.start, radius=8, color=(255, 255, 255))
@@ -180,6 +182,11 @@ class Projectile(GameObject):
         self.active = False
 
 
+class PowerUp:
+    def __init__(self, power_up_type: str):
+        self.type = power_up_type
+
+
 class Obstacle:
     def __init__(self, vertices: List[Tuple], destructible: bool = False):
         self.vertices = vertices
@@ -203,13 +210,14 @@ class Map:
     def __init__(self, map_name: str = None):
         self.id = 0
         self.obstacles = self.generate_random_obstacles() if map_name is None else self.load_obstacles_map(map_name)
-        self.visible = []
+        self._visible = []
 
     def update_visible_map_area(self, viewport: List[Tuple]):
-        self.visible = [o for o in self.obstacles if any(is_point_in_polygon(p[0], p[1], viewport) for p in o)]
+        self._visible = [o for o in self.obstacles if any(is_point_in_polygon(p[0], p[1], viewport) for p in o)]
 
-    def get_visible_obstacles(self) -> List[Obstacle]:
-        return self.visible
+    @property
+    def visible_obstacles(self) -> List[Obstacle]:
+        return self._visible
 
     def generate_random_obstacles(self) -> List[Obstacle]:
         # TODO

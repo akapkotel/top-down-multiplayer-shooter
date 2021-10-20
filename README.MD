@@ -11,16 +11,21 @@ socket for network-handling.
 4. Run 4 instances of client.py (best way is to open project in PyCharm and tick 'allow paallel run' option in 
 run-configurations
 
+#### Alternatively:
+
+1. Download executable files named 'client' and 'server' from proper 'dist' subdirectory for your OS, and run them like
+a normal application for your platform.
+
 For now this only works in the local network - no global server is set-up at the moment. At the moment a Game instance 
 requires 4 players to join the game to start.
 
 ### TO DO:
 
-1. Executables and installers for linux and windows.
+1. Executables and installers for linux (done!) and windows (not yet).
 2. Better menu allowing setting-up a new game, refresh available games and connect to them.
 3. Simple, light UI for players in game showing their health, number of players left etc.
 4. Setting-up a server and match-maker.
 5. Allow player to host a server for online game.
-6. Mooving viewport when player is traversing the map.
+6. Moving viewport when player is traversing the map.
 7. Sounds, power-ups, hit and kill effects. 
 8. Destructible obstacles on the maps.

@@ -1,9 +1,11 @@
 #!/usr/bin/env python
-import socket
 import time
 import threading
 
-from typing import List, Optional
+from socket import (
+    socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, gethostname, gethostbyname, error as socket_error
+)
+from typing import List
 from pickle import dumps, loads
 from game import Game, Player, Projectile
 
@@ -24,10 +26,10 @@ def clear_log_file():
 class Server:
     def __init__(self):
         self.games: List[Game] = []
-        self.server_ip_address = socket.gethostbyname(socket.gethostname())
+        self.server_ip_address = gethostbyname(gethostname())
         self.port = 5555
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket = socket(AF_INET, SOCK_STREAM)
+        self.socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         if self.bind_socket():
             self.run_server()
 
@@ -35,7 +37,7 @@ class Server:
         try:
             self.socket.bind((self.server_ip_address, self.port))
             return True
-        except socket.error as e:
+        except socket_error as e:
             log(e)
             return False
 
