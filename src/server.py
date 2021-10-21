@@ -1,26 +1,14 @@
 #!/usr/bin/env python
-import time
-import threading
 
+from typing import List
+from threading import Thread
+from pickle import dumps, loads
 from socket import (
     socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, gethostname, gethostbyname, error as socket_error
 )
-from typing import List
-from pickle import dumps, loads
+
 from game import Game, Player, Projectile
-
-
-def log(message: str, console: bool = False):
-    logged_message = f'{time.asctime()}, {message}'
-    if console:
-        print(logged_message)
-    with open('../logs.txt', 'a') as log_file:
-        print(logged_message, file=log_file, flush=True)
-
-
-def clear_log_file():
-    with open('../logs.txt', 'w') as file:
-        file.truncate(0)
+from simple_logging import log, clear_log_file
 
 
 class Server:
@@ -47,7 +35,7 @@ class Server:
         while True:
             try:
                 connection, address = self.socket.accept()
-                thread = threading.Thread(target=self.threaded_client, args=(connection, address[0]), daemon=False)
+                thread = Thread(target=self.threaded_client, args=(connection, address[0]), daemon=False)
                 thread.start()
             except KeyboardInterrupt:
                 break
